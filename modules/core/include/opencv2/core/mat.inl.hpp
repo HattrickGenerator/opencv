@@ -2372,7 +2372,7 @@ MatConstIterator MatConstIterator::operator --(int)
 inline
 MatConstIterator& MatConstIterator::operator ++()
 {
-    if( m && (ptr += elemSize) >= sliceEnd )
+    if((ptr += elemSize) >= sliceEnd )
     {
         ptr -= elemSize;
         seek(1, true);
@@ -2391,7 +2391,7 @@ inline MatConstIterator MatConstIterator::operator ++(int)
 static inline
 bool operator == (const MatConstIterator& a, const MatConstIterator& b)
 {
-    return a.m == b.m && a.ptr == b.ptr;
+    return  a.ptr == b.ptr;
 }
 
 static inline
@@ -2574,13 +2574,13 @@ Point MatConstIterator_<_Tp>::pos() const
 template<typename _Tp> static inline
 bool operator == (const MatConstIterator_<_Tp>& a, const MatConstIterator_<_Tp>& b)
 {
-    return a.m == b.m && a.ptr == b.ptr;
+    return a.ptr == b.ptr;
 }
 
 template<typename _Tp> static inline
 bool operator != (const MatConstIterator_<_Tp>& a, const MatConstIterator_<_Tp>& b)
 {
-    return a.m != b.m || a.ptr != b.ptr;
+    return a.ptr != b.ptr;
 }
 
 template<typename _Tp> static inline
@@ -2711,13 +2711,13 @@ _Tp& MatIterator_<_Tp>::operator [](ptrdiff_t i) const
 template<typename _Tp> static inline
 bool operator == (const MatIterator_<_Tp>& a, const MatIterator_<_Tp>& b)
 {
-    return a.m == b.m && a.ptr == b.ptr;
+    return  a.ptr == b.ptr;
 }
 
 template<typename _Tp> static inline
 bool operator != (const MatIterator_<_Tp>& a, const MatIterator_<_Tp>& b)
 {
-    return a.m != b.m || a.ptr != b.ptr;
+    return a.ptr != b.ptr;
 }
 
 template<typename _Tp> static inline

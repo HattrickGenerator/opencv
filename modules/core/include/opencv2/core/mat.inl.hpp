@@ -2372,7 +2372,7 @@ MatConstIterator MatConstIterator::operator --(int)
 inline
 MatConstIterator& MatConstIterator::operator ++()
 {
-    if((ptr += elemSize) >= sliceEnd )
+    if((ptr += 4) >= sliceEnd )
     {
         ptr -= elemSize;
         seek(1, true);

@@ -2260,17 +2260,17 @@ SparseMatConstIterator_<_Tp> SparseMat_<_Tp>::end() const
 }
 
 
+////////////////////////// MatConstIteratorBase /////////////////////////
+
+inline
+MatConstIteratorBase::MatConstIteratorBase(const Mat* _m) : m(_m), ptr(nullptr), sliceStart(nullptr), sliceEnd(nullptr)
+{ }
+
 
 ////////////////////////// MatConstIterator /////////////////////////
 
 inline
-MatConstIterator::MatConstIterator()
-    : m(0), elemSize(0), ptr(0), sliceStart(0), sliceEnd(0)
-{}
-
-inline
-MatConstIterator::MatConstIterator(const Mat* _m)
-    : m(_m), elemSize(_m->elemSize()), ptr(0), sliceStart(0), sliceEnd(0)
+MatConstIterator::MatConstIterator(const Mat* _m) : MatConstIteratorBase(_m), elemSize(_m->elemSize())
 {
     if( m && m->isContinuous() )
     {
@@ -2282,8 +2282,7 @@ MatConstIterator::MatConstIterator(const Mat* _m)
 }
 
 inline
-MatConstIterator::MatConstIterator(const Mat* _m, int _row, int _col)
-    : m(_m), elemSize(_m->elemSize()), ptr(0), sliceStart(0), sliceEnd(0)
+MatConstIterator::MatConstIterator(const Mat* _m, int _row, int _col): MatConstIteratorBase(_m), elemSize(_m->elemSize())
 {
     CV_Assert(m && m->dims <= 2);
     if( m->isContinuous() )
@@ -2297,8 +2296,7 @@ MatConstIterator::MatConstIterator(const Mat* _m, int _row, int _col)
 }
 
 inline
-MatConstIterator::MatConstIterator(const Mat* _m, Point _pt)
-    : m(_m), elemSize(_m->elemSize()), ptr(0), sliceStart(0), sliceEnd(0)
+MatConstIterator::MatConstIterator(const Mat* _m, Point _pt): MatConstIteratorBase(_m), elemSize(_m->elemSize())
 {
     CV_Assert(m && m->dims <= 2);
     if( m->isContinuous() )
@@ -2309,19 +2307,6 @@ MatConstIterator::MatConstIterator(const Mat* _m, Point _pt)
     }
     int idx[] = {_pt.y, _pt.x};
     seek(idx);
-}
-
-inline
-MatConstIterator::MatConstIterator(const MatConstIterator& it)
-    : m(it.m), elemSize(it.elemSize), ptr(it.ptr), sliceStart(it.sliceStart), sliceEnd(it.sliceEnd)
-{}
-
-inline
-MatConstIterator& MatConstIterator::operator = (const MatConstIterator& it )
-{
-    m = it.m; elemSize = it.elemSize; ptr = it.ptr;
-    sliceStart = it.sliceStart; sliceEnd = it.sliceEnd;
-    return *this;
 }
 
 inline

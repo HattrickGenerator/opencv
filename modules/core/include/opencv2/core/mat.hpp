@@ -3031,11 +3031,37 @@ public:
     SparseMatConstIterator_<_Tp> end() const;
 };
 
+////////////////////////////////// MatConstIteratorBase //////////////////////////////////
+/** @brief Matrix read-only iterator base members
+ */
+class MatConstIteratorBase
+{
+public:
+    typedef std::random_access_iterator_tag iterator_category;
+
+    //! default constructor
+    MatConstIteratorBase() = default;
+
+    //! constructor that sets the iterator to the beginning of the matrix
+    MatConstIteratorBase(const Mat* _m);
+    //! constructor that sets the iterator to the specified element of the matrix
+    MatConstIteratorBase(const Mat* _m, int _row, int _col=0);
+    //! constructor that sets the iterator to the specified element of the matrix
+    MatConstIteratorBase(const Mat* _m, Point _pt);
+    //! constructor that sets the iterator to the specified element of the matrix
+    MatConstIteratorBase(const Mat* _m, const int* _idx);
+
+
+    const Mat* m = nullptr;
+    const uchar* ptr = nullptr;
+    const uchar* sliceStart = nullptr;
+    const uchar* sliceEnd = nullptr;
+};
 
 
 ////////////////////////////////// MatConstIterator //////////////////////////////////
 
-class CV_EXPORTS MatConstIterator
+class CV_EXPORTS MatConstIterator : public MatConstIteratorBase
 {
 public:
     typedef uchar* value_type;
@@ -3046,7 +3072,7 @@ public:
     typedef std::random_access_iterator_tag iterator_category;
 
     //! default constructor
-    MatConstIterator();
+    MatConstIterator() = default;
     //! constructor that sets the iterator to the beginning of the matrix
     MatConstIterator(const Mat* _m);
     //! constructor that sets the iterator to the specified element of the matrix
@@ -3056,10 +3082,10 @@ public:
     //! constructor that sets the iterator to the specified element of the matrix
     MatConstIterator(const Mat* _m, const int* _idx);
     //! copy constructor
-    MatConstIterator(const MatConstIterator& it);
+    MatConstIterator(const MatConstIterator& it) = default;
 
     //! copy operator
-    MatConstIterator& operator = (const MatConstIterator& it);
+    MatConstIterator& operator = (const MatConstIterator& it) =default;
     //! returns the current matrix element
     const uchar* operator *() const;
     //! returns the i-th matrix element, relative to the current
@@ -3086,11 +3112,7 @@ public:
     void seek(ptrdiff_t ofs, bool relative = false);
     void seek(const int* _idx, bool relative = false);
 
-    const Mat* m;
     size_t elemSize;
-    const uchar* ptr;
-    const uchar* sliceStart;
-    const uchar* sliceEnd;
 };
 
 

@@ -2374,37 +2374,37 @@ inline MatConstIterator MatConstIterator::operator ++(int)
 
 
 static inline
-bool operator == (const MatConstIterator& a, const MatConstIterator& b)
+bool operator == (const MatConstIteratorBase& a, const MatConstIteratorBase& b)
 {
     return a.m == b.m && a.ptr == b.ptr;
 }
 
 static inline
-bool operator != (const MatConstIterator& a, const MatConstIterator& b)
+bool operator != (const MatConstIteratorBase& a, const MatConstIteratorBase& b)
 {
     return !(a == b);
 }
 
 static inline
-bool operator < (const MatConstIterator& a, const MatConstIterator& b)
+bool operator < (const MatConstIteratorBase& a, const MatConstIteratorBase& b)
 {
     return a.ptr < b.ptr;
 }
 
 static inline
-bool operator > (const MatConstIterator& a, const MatConstIterator& b)
+bool operator > (const MatConstIteratorBase& a, const MatConstIteratorBase& b)
 {
     return a.ptr > b.ptr;
 }
 
 static inline
-bool operator <= (const MatConstIterator& a, const MatConstIterator& b)
+bool operator <= (const MatConstIteratorBase& a, const MatConstIteratorBase& b)
 {
     return a.ptr <= b.ptr;
 }
 
 static inline
-bool operator >= (const MatConstIterator& a, const MatConstIterator& b)
+bool operator >= (const MatConstIteratorBase& a, const MatConstIteratorBase& b)
 {
     return a.ptr >= b.ptr;
 }
@@ -2453,34 +2453,48 @@ const uchar* MatConstIterator::operator [](ptrdiff_t i) const
 ///////////////////////// MatConstIterator_ /////////////////////////
 
 template<typename _Tp> inline
-MatConstIterator_<_Tp>::MatConstIterator_()
-{}
-
-template<typename _Tp> inline
 MatConstIterator_<_Tp>::MatConstIterator_(const Mat_<_Tp>* _m)
-    : MatConstIterator(_m)
-{}
+    : MatConstIteratorBase(_m)
+{
+    if( m && m->isContinuous() )
+    {
+        CV_Assert(!m->empty());
+        sliceStart = m->ptr();
+        sliceEnd = sliceStart + m->total()*sizeof(_Tp);
+    }
+    seek((const int*)0);
+
+}
 
 template<typename _Tp> inline
 MatConstIterator_<_Tp>::MatConstIterator_(const Mat_<_Tp>* _m, int _row, int _col)
-    : MatConstIterator(_m, _row, _col)
-{}
+    : MatConstIteratorBase(_m, _row, _col)
+{
+    CV_Assert(m && m->dims <= 2);
+    if( m->isContinuous() )
+    {
+        CV_Assert(!m->empty());
+        sliceStart = m->ptr();
+        sliceEnd = sliceStart + m->total()*sizeof(_Tp);
+    }
+    int idx[] = {_row, _col};
+    seek(idx);
+
+}
 
 template<typename _Tp> inline
 MatConstIterator_<_Tp>::MatConstIterator_(const Mat_<_Tp>* _m, Point _pt)
-    : MatConstIterator(_m, _pt)
-{}
-
-template<typename _Tp> inline
-MatConstIterator_<_Tp>::MatConstIterator_(const MatConstIterator_& it)
-    : MatConstIterator(it)
-{}
-
-template<typename _Tp> inline
-MatConstIterator_<_Tp>& MatConstIterator_<_Tp>::operator = (const MatConstIterator_& it )
+    : MatConstIteratorBase(_m, _pt)
 {
-    MatConstIterator::operator = (it);
-    return *this;
+    CV_Assert(m && m->dims <= 2);
+    if( m->isContinuous() )
+    {
+        CV_Assert(!m->empty());
+        sliceStart = m->ptr();
+        sliceEnd = sliceStart + m->total()*sizeof(_Tp);
+    }
+    int idx[] = {_pt.y, _pt.x};
+    seek(idx);
 }
 
 template<typename _Tp> inline
@@ -2492,7 +2506,15 @@ const _Tp& MatConstIterator_<_Tp>::operator *() const
 template<typename _Tp> inline
 MatConstIterator_<_Tp>& MatConstIterator_<_Tp>::operator += (ptrdiff_t ofs)
 {
-    MatConstIterator::operator += (ofs);
+    if( !m || ofs == 0 )
+        return *this;
+    ptrdiff_t ofsb = ofs*sizeof(_Tp);
+    ptr += ofsb;
+    if( ptr < sliceStart || sliceEnd <= ptr )
+    {
+        ptr -= ofsb;
+        seek(ofs, true);
+    }
     return *this;
 }
 
@@ -2505,30 +2527,40 @@ MatConstIterator_<_Tp>& MatConstIterator_<_Tp>::operator -= (ptrdiff_t ofs)
 template<typename _Tp> inline
 MatConstIterator_<_Tp>& MatConstIterator_<_Tp>::operator --()
 {
-    MatConstIterator::operator --();
+    ptr -= sizeof(_Tp);
+    if( m && (ptr) < sliceStart )
+    {
+        ptr += sizeof(_Tp);
+        seek(-1, true);
+    }
     return *this;
 }
 
 template<typename _Tp> inline
 MatConstIterator_<_Tp> MatConstIterator_<_Tp>::operator --(int)
 {
-    MatConstIterator_ b = *this;
-    MatConstIterator::operator --();
+    MatConstIterator_<_Tp> b = *this;
+    *this += -1;
     return b;
 }
 
 template<typename _Tp> inline
 MatConstIterator_<_Tp>& MatConstIterator_<_Tp>::operator ++()
 {
-    MatConstIterator::operator ++();
+    ptr += sizeof(_Tp);
+    if( m && (ptr) >= sliceEnd )
+    {
+        ptr -= sizeof(_Tp);
+        seek(1, true);
+    }
     return *this;
 }
 
 template<typename _Tp> inline
 MatConstIterator_<_Tp> MatConstIterator_<_Tp>::operator ++(int)
 {
-    MatConstIterator_ b = *this;
-    MatConstIterator::operator ++();
+    MatConstIterator_<_Tp> b = *this;
+    *this += 1;
     return b;
 }
 
@@ -2571,31 +2603,149 @@ bool operator != (const MatConstIterator_<_Tp>& a, const MatConstIterator_<_Tp>&
 template<typename _Tp> static inline
 MatConstIterator_<_Tp> operator + (const MatConstIterator_<_Tp>& a, ptrdiff_t ofs)
 {
-    MatConstIterator t = (const MatConstIterator&)a + ofs;
-    return (MatConstIterator_<_Tp>&)t;
+    MatConstIterator_ b = a;
+    b += ofs;
+    return (MatConstIterator_<_Tp>&)b;
 }
 
 template<typename _Tp> static inline
 MatConstIterator_<_Tp> operator + (ptrdiff_t ofs, const MatConstIterator_<_Tp>& a)
 {
+    MatConstIterator_ b = a;
+    b += ofs;
     MatConstIterator t = (const MatConstIterator&)a + ofs;
-    return (MatConstIterator_<_Tp>&)t;
+    return (MatConstIterator_<_Tp>&)b;
 }
 
 template<typename _Tp> static inline
 MatConstIterator_<_Tp> operator - (const MatConstIterator_<_Tp>& a, ptrdiff_t ofs)
 {
-    MatConstIterator t = (const MatConstIterator&)a - ofs;
-    return (MatConstIterator_<_Tp>&)t;
+    MatConstIterator_ b = a;
+    b += -ofs;
+    MatConstIterator t = (const MatConstIterator&)a + ofs;
+    return (MatConstIterator_<_Tp>&)b;
 }
 
 template<typename _Tp> inline
 const _Tp& MatConstIterator_<_Tp>::operator [](ptrdiff_t i) const
 {
-    return *(_Tp*)MatConstIterator::operator [](i);
+    return *(_Tp*)(*this + i);
 }
 
+template<typename _Tp>
+void MatConstIterator_<_Tp>::seek(ptrdiff_t ofs, bool relative)
+{
+    if( m->isContinuous() )
+    {
+        ptr = (relative ? ptr : sliceStart) + ofs*sizeof(_Tp);
+        if( ptr < sliceStart )
+            ptr = sliceStart;
+        else if( ptr > sliceEnd )
+            ptr = sliceEnd;
+        return;
+    }
 
+    int d = m->dims;
+    if( d == 2 )
+    {
+        ptrdiff_t ofs0, y;
+        if( relative )
+        {
+            ofs0 = ptr - m->ptr();
+            y = ofs0/m->step[0];
+            ofs += y*m->cols + (ofs0 - y*m->step[0])/sizeof(_Tp);
+        }
+        y = ofs/m->cols;
+        int y1 = std::min(std::max((int)y, 0), m->rows-1);
+        sliceStart = m->ptr(y1);
+        sliceEnd = sliceStart + m->cols*sizeof(_Tp);
+        ptr = y < 0 ? sliceStart : y >= m->rows ? sliceEnd :
+            sliceStart + (ofs - y*m->cols)*sizeof(_Tp);
+        return;
+    }
+
+    if( relative )
+        ofs += lpos();
+
+    if( ofs < 0 )
+        ofs = 0;
+
+    int szi = m->size[d-1];
+    ptrdiff_t t = ofs/szi;
+    int v = (int)(ofs - t*szi);
+    ofs = t;
+    ptr = m->ptr() + v*sizeof(_Tp);
+    sliceStart = m->ptr();
+
+    for( int i = d-2; i >= 0; i-- )
+    {
+        szi = m->size[i];
+        t = ofs/szi;
+        v = (int)(ofs - t*szi);
+        ofs = t;
+        sliceStart += v*m->step[i];
+    }
+
+    sliceEnd = sliceStart + m->size[d-1]*sizeof(_Tp);
+    if( ofs > 0 )
+        ptr = sliceEnd;
+    else
+        ptr = sliceStart + (ptr - m->ptr());
+}
+
+template<typename _Tp>
+void MatConstIterator_<_Tp>::seek(const int* _idx, bool relative)
+{
+    int d = m->dims;
+    ptrdiff_t ofs = 0;
+    if( !_idx )
+        ;
+    else if( d == 2 )
+        ofs = _idx[0]*m->size[1] + _idx[1];
+    else
+    {
+        for( int i = 0; i < d; i++ )
+            ofs = ofs*m->size[i] + _idx[i];
+    }
+    seek(ofs, relative);
+}
+
+template<typename _Tp>
+void MatConstIterator_<_Tp>::pos(int* _idx) const
+{
+    CV_Assert(m != 0 && _idx);
+    ptrdiff_t ofs = ptr - m->ptr();
+    for( int i = 0; i < m->dims; i++ )
+    {
+        size_t s = m->step[i], v = ofs/s;
+        ofs -= v*s;
+        _idx[i] = (int)v;
+    }
+}
+
+template<typename _Tp>
+ptrdiff_t MatConstIterator_<_Tp>::lpos() const
+{
+    if(!m)
+        return 0;
+    if( m->isContinuous() )
+        return (ptr - sliceStart)/sizeof(_Tp);
+    ptrdiff_t ofs = ptr - m->ptr();
+    int i, d = m->dims;
+    if( d == 2 )
+    {
+        ptrdiff_t y = ofs/m->step[0];
+        return y*m->cols + (ofs - y*m->step[0])/sizeof(_Tp);
+    }
+    ptrdiff_t result = 0;
+    for( i = 0; i < d; i++ )
+    {
+        size_t s = m->step[i], v = ofs/s;
+        ofs -= v*s;
+        result = result*m->size[i] + v;
+    }
+    return result;
+}
 
 //////////////////////////// MatIterator_ ///////////////////////////
 
@@ -2632,7 +2782,7 @@ MatIterator_<_Tp>::MatIterator_(const MatIterator_& it)
 template<typename _Tp> inline
 MatIterator_<_Tp>& MatIterator_<_Tp>::operator = (const MatIterator_<_Tp>& it )
 {
-    MatConstIterator::operator = (it);
+    MatConstIterator_<_Tp>::operator = (it);
     return *this;
 }
 
@@ -2645,21 +2795,21 @@ _Tp& MatIterator_<_Tp>::operator *() const
 template<typename _Tp> inline
 MatIterator_<_Tp>& MatIterator_<_Tp>::operator += (ptrdiff_t ofs)
 {
-    MatConstIterator::operator += (ofs);
+    MatConstIterator_<_Tp>::operator += (ofs);
     return *this;
 }
 
 template<typename _Tp> inline
 MatIterator_<_Tp>& MatIterator_<_Tp>::operator -= (ptrdiff_t ofs)
 {
-    MatConstIterator::operator += (-ofs);
+    MatConstIterator_<_Tp>::operator += (-ofs);
     return *this;
 }
 
 template<typename _Tp> inline
 MatIterator_<_Tp>& MatIterator_<_Tp>::operator --()
 {
-    MatConstIterator::operator --();
+    MatConstIterator_<_Tp>::operator --();
     return *this;
 }
 
@@ -2667,14 +2817,14 @@ template<typename _Tp> inline
 MatIterator_<_Tp> MatIterator_<_Tp>::operator --(int)
 {
     MatIterator_ b = *this;
-    MatConstIterator::operator --();
+    MatConstIterator_<_Tp>::operator --();
     return b;
 }
 
 template<typename _Tp> inline
 MatIterator_<_Tp>& MatIterator_<_Tp>::operator ++()
 {
-    MatConstIterator::operator ++();
+    MatConstIterator_<_Tp>::operator ++();
     return *this;
 }
 
@@ -2682,7 +2832,7 @@ template<typename _Tp> inline
 MatIterator_<_Tp> MatIterator_<_Tp>::operator ++(int)
 {
     MatIterator_ b = *this;
-    MatConstIterator::operator ++();
+    MatConstIterator_<_Tp>::operator ++();
     return b;
 }
 
@@ -2708,24 +2858,23 @@ bool operator != (const MatIterator_<_Tp>& a, const MatIterator_<_Tp>& b)
 template<typename _Tp> static inline
 MatIterator_<_Tp> operator + (const MatIterator_<_Tp>& a, ptrdiff_t ofs)
 {
-    MatConstIterator t = (const MatConstIterator&)a + ofs;
+    MatConstIterator_<_Tp> t = (const MatConstIterator_<_Tp>&)a + ofs;
     return (MatIterator_<_Tp>&)t;
 }
 
 template<typename _Tp> static inline
 MatIterator_<_Tp> operator + (ptrdiff_t ofs, const MatIterator_<_Tp>& a)
 {
-    MatConstIterator t = (const MatConstIterator&)a + ofs;
+    MatConstIterator_<_Tp> t = (const MatConstIterator_<_Tp>&)a + ofs;
     return (MatIterator_<_Tp>&)t;
 }
 
 template<typename _Tp> static inline
 MatIterator_<_Tp> operator - (const MatIterator_<_Tp>& a, ptrdiff_t ofs)
 {
-    MatConstIterator t = (const MatConstIterator&)a - ofs;
+    MatConstIterator_<_Tp> t = (const MatConstIterator_<_Tp>&)a - ofs;
     return (MatIterator_<_Tp>&)t;
 }
-
 
 
 /////////////////////// SparseMatConstIterator //////////////////////

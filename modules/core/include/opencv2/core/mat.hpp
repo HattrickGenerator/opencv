@@ -3122,7 +3122,7 @@ public:
 /** @brief Matrix read-only iterator
  */
 template<typename _Tp>
-class MatConstIterator_ : public MatConstIterator
+class MatConstIterator_ : public MatConstIteratorBase
 {
 public:
     typedef _Tp value_type;
@@ -3133,7 +3133,7 @@ public:
     typedef std::random_access_iterator_tag iterator_category;
 
     //! default constructor
-    MatConstIterator_();
+    MatConstIterator_() = default;
     //! constructor that sets the iterator to the beginning of the matrix
     MatConstIterator_(const Mat_<_Tp>* _m);
     //! constructor that sets the iterator to the specified element of the matrix
@@ -3143,10 +3143,10 @@ public:
     //! constructor that sets the iterator to the specified element of the matrix
     MatConstIterator_(const Mat_<_Tp>* _m, const int* _idx);
     //! copy constructor
-    MatConstIterator_(const MatConstIterator_& it);
+    MatConstIterator_(const MatConstIterator_& it) = default;
 
     //! copy operator
-    MatConstIterator_& operator = (const MatConstIterator_& it);
+    MatConstIterator_& operator = (const MatConstIterator_& it) = default;
     //! returns the current matrix element
     const _Tp& operator *() const;
     //! returns the i-th matrix element, relative to the current
@@ -3166,6 +3166,13 @@ public:
     MatConstIterator_ operator ++(int);
     //! returns the current iterator position
     Point pos() const;
+
+    //! returns the current iterator position
+    void pos(int* _idx) const;
+
+    ptrdiff_t lpos() const;
+    void seek(ptrdiff_t ofs, bool relative = false);
+    void seek(const int* _idx, bool relative = false);
 };
 
 

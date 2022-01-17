@@ -6,7 +6,7 @@
 #define OPENCV_CORE_DETAIL_UTIL_HPP
 
 namespace cv {
-namespace detail {
+namespace experimental {
 
 template <size_t... Ints> struct index_sequence {
   using type = index_sequence;

@@ -194,6 +194,24 @@ TEST_F(CORE_stl_forward, find_test)
     EXPECT_EQ(replaced_dist,orig_dist);
 }
 
+TEST_F(CORE_stl_forward, transform_test)
+{
+    auto lst = intList;
+
+    //Test replaced iterators vs. normal stl algo
+    auto it1_f = experimental::transform(mat.begin<int>(),mat.end<int>(),intVec.begin(), [lst](int val){return val *2 + lst.front();});
+    auto it1_o = std::transform(mat.begin<int>(),mat.end<int>(),intVec.begin(), [lst](int val){return val *2 + lst.front();});
+    EXPECT_EQ(it1_f, it1_o);
+
+    auto it2_f = experimental::transform(mat.begin<int>(),mat.end<int>(),mat.begin<int>(), [lst](int val){return val *2 + lst.front();});
+    auto it2_o = std::transform(mat.begin<int>(),mat.end<int>(),mat.begin<int>(), [lst](int val){return val *2 + lst.front();});
+    EXPECT_EQ(it2_f, it2_o);
+
+    auto it3_f = experimental::transform(mat.begin<int>(),mat.end<int>(),mat_f.begin(), mat_f.begin(), [lst](int val, float val2){return val *2 /val2 + lst.front();});
+    auto it3_o = std::transform(mat.begin<int>(),mat.end<int>(),mat_f.begin(), mat_f.begin(), [lst](int val, float val2){return val *2 /val2 + lst.front();});
+    EXPECT_EQ(it3_f, it3_o);
+
+}
 
 
 }} // namespace

@@ -215,4 +215,3 @@ TEST_F(CORE_stl_forward, transform_test)
 
 
 }} // namespace
-

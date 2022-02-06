@@ -4,6 +4,8 @@
 
 #ifndef OPENCV_CORE_DETAIL_UTIL_HPP
 #define OPENCV_CORE_DETAIL_UTIL_HPP
+#include <iterator>
+#include <type_traits>
 
 namespace cv {
 namespace experimental {
@@ -52,6 +54,18 @@ template <std::size_t N, typename F> void for_(F func) {
   for_(func, make_index_sequence<N>());
 }
 
+
+//Specialization to reverse iterator. thanks to https://stackoverflow.com/questions/22360697/determine-if-a-c-iterator-is-reverse
+template<typename Iter>
+struct is_reverse_iterator : std::false_type { };
+
+template<typename Iter>
+struct is_reverse_iterator<std::reverse_iterator<Iter>>
+: std::integral_constant<bool, !is_reverse_iterator<Iter>::value>
+{ };
+
+// Thanks to https://stackoverflow.com/questions/34745581/forbids-functions-with-static-assert#comment57237292_34745581
+template <typename...> struct always_false { static constexpr bool value = false; };
 
 
 }}

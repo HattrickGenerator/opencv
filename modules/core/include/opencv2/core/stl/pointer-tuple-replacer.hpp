@@ -8,7 +8,6 @@
 #include "opencv2/core/stl/util.hpp"
 #include <tuple>
 #include <type_traits>
-
 namespace cv {
 namespace experimental {
 
@@ -28,9 +27,24 @@ template <typename T> constexpr auto replace_cv_it(cv::MatConstIterator_<T> it) 
 
 template <typename T> constexpr auto replace_cv_it(cv::MatIterator_<T> it) -> T * { return (T *)it.ptr; }
 
-template <typename T, enable_if_t<!std::is_base_of<cv::MatConstIterator, T>::value, bool> = true>
-auto replace_single_element(T t) -> T {
+//overload for detecting reverse iterators: This is a reverse iterator. Now we have to check if it's an openCV reverse iterator or not
+template <typename T, enable_if_t<is_reverse_iterator<T>::value, bool> = true>
+auto replace_single_element_rev_check(T t) -> T {
+static_assert(always_false<T>::value,
+                  "Reverse iterators are currently not supported for forwarding");
   return t;
+}
+
+//overload for detecting reverse iterators: Nothing. This is just a normal iterator of anything but opencv matrices
+template <typename T, enable_if_t<!is_reverse_iterator<T>::value, bool> = true>
+auto replace_single_element_rev_check(T t) -> T {
+  return t;
+}
+
+//overload for detecting reverse iterators: Nothing. This is just a normal iterator of anything but opencv matrices
+template <typename T, enable_if_t<!std::is_base_of<cv::MatConstIterator, T>::value, bool> = true>
+auto replace_single_element(T t) -> decltype( replace_single_element_rev_check(t)) {
+  return replace_single_element_rev_check(t);
 }
 
 template <typename T, enable_if_t<std::is_base_of<cv::MatConstIterator, T>::value, bool> = true>
@@ -123,12 +137,9 @@ constexpr auto make_tpl_replaced(T1 t1, T2 t2, T3 t3, T4 t4, T5 t5, T6 t6, T7 t7
                          replace_single_element(t10));
 }
 
-// Thanks to https://stackoverflow.com/questions/34745581/forbids-functions-with-static-assert#comment57237292_34745581
-template <typename...> struct always_false { static constexpr bool value = false; };
-
 template <typename... Args> void make_tpl_replaced(Args...) {
   static_assert(always_false<Args...>::value,
-                "Zeor or more than ten arguments are currently not supported for forwarding to stl.");
+                "Zero or more than ten arguments are currently not supported for forwarding to stl.");
 }
 
 } // namespace experimental

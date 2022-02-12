@@ -237,6 +237,13 @@ TEST_F(CORE_stl_forward, find_first_of)
     EXPECT_EQ(*experimental::find_first_of(mat_f.begin(), mat_f.end(),t1.begin(), t1.end()),*std::find_first_of(mat_f.begin(), mat_f.end(),t1.begin(), t1.end()));
 }
 
+TEST_F(CORE_stl_forward, adjacent_find)
+{
+    std::vector<int> t1{1, 2, 3};
+    //Test replaced iterators vs. normal stl algo
+    EXPECT_EQ((void*)experimental::adjacent_find(mat_f.begin(), mat_f.end()).ptr,(void*)std::adjacent_find(mat_f.begin(), mat_f.end()).ptr);
+}
+
 TEST_F(CORE_stl_forward, transform)
 {
     auto lst = intList;

@@ -170,7 +170,7 @@ TEST_F(CORE_stl_forward, DISABLED_tuple_replacer_reverse_iterator)
 }
 
 
-TEST_F(CORE_stl_forward, count_if_test)
+TEST_F(CORE_stl_forward, count_if)
 {
     auto lambda = [](int val){return val >13 && val < 100;};
 
@@ -182,7 +182,36 @@ TEST_F(CORE_stl_forward, count_if_test)
     EXPECT_EQ(experimental::count_if(mat.begin<int>(), mat.end<int>(),lambda), std::count_if((int*)mat.begin<int>().ptr, (int*)mat.end<int>().ptr,lambda));
 }
 
-TEST_F(CORE_stl_forward, find_test)
+TEST_F(CORE_stl_forward, count)
+{
+
+    //This test is with replacable iterators.
+    EXPECT_TRUE(cv::experimental::__iterators__replaceable(mat.begin<int>(), mat.end<int>(),2));
+
+    //Test replaced iterators vs. normal stl algo
+    EXPECT_EQ(experimental::count(mat.begin<int>(), mat.end<int>(),2), std::count(mat.begin<int>(), mat.end<int>(),2));
+    EXPECT_EQ(experimental::count(mat.begin<int>(), mat.end<int>(),2), std::count((int*)mat.begin<int>().ptr, (int*)mat.end<int>().ptr,2));
+}
+
+TEST_F(CORE_stl_forward, all_of)
+{
+    EXPECT_TRUE(experimental::all_of(mat_f.begin(), mat_f.end(),[](float val){return val>= -1.0f;}));
+    EXPECT_FALSE(experimental::all_of(mat_f.begin(), mat_f.end(),[](float val){return val>= 1.0f;}));
+}
+
+TEST_F(CORE_stl_forward, any_of)
+{
+    EXPECT_TRUE(experimental::any_of(mat_f.begin(), mat_f.end(),[](float val){return val>= 5.0f;}));
+    EXPECT_FALSE(experimental::any_of(mat_f.begin(), mat_f.end(),[](float val){return val>= 200.f;}));
+}
+
+TEST_F(CORE_stl_forward, none_of)
+{
+    EXPECT_TRUE(experimental::none_of(mat_f.begin(), mat_f.end(),[](float val){return val < -2.0f;}));
+    EXPECT_FALSE(experimental::none_of(mat_f.begin(), mat_f.end(),[](float val){return val < 0.0f;}));
+}
+
+TEST_F(CORE_stl_forward, find)
 {
     //Test replaced iterators vs. normal stl algo
     EXPECT_EQ(*experimental::find(mat.begin<int>(), mat.end<int>(),5),5);
@@ -194,7 +223,21 @@ TEST_F(CORE_stl_forward, find_test)
     EXPECT_EQ(replaced_dist,orig_dist);
 }
 
-TEST_F(CORE_stl_forward, transform_test)
+TEST_F(CORE_stl_forward, find_end)
+{
+    std::vector<int> t1{1, 2, 3};
+    //Test replaced iterators vs. normal stl algo
+    EXPECT_EQ(*experimental::find_end(mat_f.begin(), mat_f.end(),t1.begin(), t1.end()),*std::find_end(mat_f.begin(), mat_f.end(),t1.begin(), t1.end()));
+}
+
+TEST_F(CORE_stl_forward, find_first_of)
+{
+    std::vector<int> t1{1, 2, 3};
+    //Test replaced iterators vs. normal stl algo
+    EXPECT_EQ(*experimental::find_first_of(mat_f.begin(), mat_f.end(),t1.begin(), t1.end()),*std::find_first_of(mat_f.begin(), mat_f.end(),t1.begin(), t1.end()));
+}
+
+TEST_F(CORE_stl_forward, transform)
 {
     auto lst = intList;
 
